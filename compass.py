@@ -42,7 +42,7 @@ class Compass(Optimizer):
                 grad = p.grad.data
                 if grad.is_sparse:
                     raise RuntimeError(
-                        "AdamW does not support sparse gradients, please consider SparseAdam instead"
+                        "Compass does not support sparse gradients"
                     )
 
                 state = self.state[p]
