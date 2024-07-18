@@ -1,0 +1,30 @@
+\begin{align}
+    
+    &\textbf{Initialize:} \quad \theta_0 \in \mathbb{R}^d \quad (\text{initial parameters}), \\
+    &m_0 \leftarrow 0 \quad (\text{initialize 1st moment vector}), \\
+    &v_0 \leftarrow 0 \quad (\text{initialize 2nd moment vector}), \\
+    &t \leftarrow 0 \quad (\text{initialize timestep}). \\
+    \\
+    
+    &\textbf{Hyperparameters:} \\
+    &\alpha \quad (\text{learning rate}), \\
+    &\gamma \quad (\text{smoothing factor}), \\
+    &\lambda \quad (\text{weight decay}), \\
+    &\epsilon \quad (\text{small constant to prevent division by zero}), \\
+    &\beta_1, \beta_2 \in [0,1) \quad (\text{exponential decay rates for the moment estimates}). \\
+    \\
+    
+    &\textbf{Repeat until convergence:} \\
+    &t \leftarrow t + 1 \\
+    &g_t \leftarrow \nabla_{\theta} f_t(\theta_{t-1}) \quad (\text{compute gradients of the stochastic objective at timestep t}) \\
+    &m_t \leftarrow \beta_1 m_{t-1} + (1 - \beta_1) g_t \quad (\text{update biased first moment estimate}) \\
+    &\hat{g}_t \leftarrow g_t +m_t \gamma \quad (\text{smooth out gradients}) \\
+    &v_t \leftarrow \beta_2 v_{t-1} + (1 - \beta_2) \hat{g}_t^2 \quad (\text{update biased second moment estimate}) \\
+    &\hat{m}_t \leftarrow \frac{m_t}{1 - \beta_1^t} \quad (\text{compute bias-corrected first moment estimate}) \\
+    &\hat{v}_t \leftarrow \frac{v_t}{1 - \beta_2^t} \quad (\text{compute bias-corrected second moment estimate}) \\
+    &\hat\theta_{t-1} \leftarrow \theta_{t-1}(1-a\lambda)\quad (\text{compute decoupled weight decay}) \\
+    &\theta_t \leftarrow \hat\theta_{t-1} - \frac{\alpha\hat{g}_t}{\hat{m}_t\sqrt{\hat{v}_t} + \epsilon} \quad (\text{update parameters})
+    \\
+
+\end{align} \\
+    
