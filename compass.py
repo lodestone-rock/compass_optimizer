@@ -20,13 +20,27 @@ class Compass(Optimizer):
             improve numerical stability. (default: 1e-8).
         weight_decay (float):
             Weight decay, i.e. a L2 penalty (default: 0).
+        centralization (float):
+            center model grad (default: 0).
     """
 
     def __init__(
-        self, params, lr=1e-3, betas=(0.9, 0.999), amp_fac=2, eps=1e-8, weight_decay=0
+        self,
+        params,
+        lr=1e-3,
+        betas=(0.9, 0.999),
+        amp_fac=2,
+        eps=1e-8,
+        weight_decay=0,
+        centralization=0,
     ):
         defaults = dict(
-            lr=lr, betas=betas, amp_fac=amp_fac, eps=eps, weight_decay=weight_decay
+            lr=lr,
+            betas=betas,
+            amp_fac=amp_fac,
+            eps=eps,
+            weight_decay=weight_decay,
+            centralization=centralization,
         )
         super(Compass, self).__init__(params, defaults)
 
@@ -41,9 +55,7 @@ class Compass(Optimizer):
                     continue
                 grad = p.grad.data
                 if grad.is_sparse:
-                    raise RuntimeError(
-                        "Compass does not support sparse gradients"
-                    )
+                    raise RuntimeError("Compass does not support sparse gradients")
 
                 state = self.state[p]
 
@@ -60,8 +72,14 @@ class Compass(Optimizer):
                 amplification_factor = group["amp_fac"]
                 lr = group["lr"]
                 weight_decay = group["weight_decay"]
-
+                centralization = group["centralization"]
                 state["step"] += 1
+
+                # center the gradient vector
+                if centralization != 0:
+                    grad.sub_(
+                        ema.mean(dim=tuple(range(1, ema.dim())), keepdim=True)
+                    ).mul_(centralization)
 
                 # bias correction step size
                 # soft warmup
