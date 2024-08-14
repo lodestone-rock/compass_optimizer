@@ -41,8 +41,6 @@ class CompassExperimental4Bit(Optimizer):
         eps=1e-8,
         weight_decay=0,
         centralization=0,
-        quantization_group_size=8,
-        quantization_factor=3.2,
     ):
         defaults = dict(
             lr=lr,
@@ -51,8 +49,6 @@ class CompassExperimental4Bit(Optimizer):
             eps=eps,
             weight_decay=weight_decay,
             centralization=centralization,
-            group_size=quantization_group_size,
-            factor=quantization_factor,
         )
         super(CompassExperimental4Bit, self).__init__(params, defaults)
 
@@ -76,15 +72,11 @@ class CompassExperimental4Bit(Optimizer):
                     state["step"] = 0
                     # Exponential moving average of gradient values
                     state["ema"], state["ema_prop"] = quantize_nf4(
-                        torch.zeros_like(p.data),
-                        group_size=group["group_size"],
-                        factor=group["factor"],
+                        torch.zeros_like(p.data)
                     )
                     # Exponential moving average of squared gradient values
                     state["ema_squared"], state["ema_squared_prop"] = quantize_nf4(
-                        torch.zeros_like(p.data),
-                        group_size=group["group_size"],
-                        factor=group["factor"],
+                        torch.zeros_like(p.data)
                     )
 
                 ema, ema_prop, ema_squared, ema_squared_prop = (
