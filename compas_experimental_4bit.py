@@ -113,20 +113,17 @@ class CompassExperimental4Bit(Optimizer):
                 grad.add_(ema, alpha=amplification_factor)
 
                 ema_squared = (
-                    dequantize_nf4(ema_squared, ema_squared_prop) + (1 - beta2) * grad**2
+                    dequantize_nf4(ema_squared, ema_squared_prop)
+                    + (1 - beta2) * grad**2
                 )
-                ema, ema_prop = quantize_nf4(
-                    ema, group_size=group["group_size"], factor=group["factor"]
-                )
+                ema, ema_prop = quantize_nf4(ema)
 
                 # ema_squared.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
 
                 # lr scaler + eps to prevent zero division
                 # denom = exp_avg_sq.sqrt() + group['eps']
                 denom = (ema_squared.sqrt() / bias_correction_sqrt).add_(group["eps"])
-                ema_squared, ema_squared_prop = quantize_nf4(
-                    ema_squared, group_size=group["group_size"], factor=group["factor"]
-                )
+                ema_squared, ema_squared_prop = quantize_nf4(ema_squared)
                 if weight_decay != 0:
                     # Perform stepweight decay
                     p.data.mul_(1 - step_size * weight_decay)
