@@ -71,20 +71,14 @@ class CompassExperimental4Bit(Optimizer):
                 if len(state) == 0:
                     state["step"] = 0
                     # Exponential moving average of gradient values
-                    state["ema"], state["ema_prop"] = quantize_nf4(
+                    state["ema"] = quantize_nf4(
                         torch.zeros_like(p.data)
                     )
                     # Exponential moving average of squared gradient values
-                    state["ema_squared"], state["ema_squared_prop"] = quantize_nf4(
+                    state["ema_squared"] = quantize_nf4(
                         torch.zeros_like(p.data)
                     )
 
-                ema, ema_prop, ema_squared, ema_squared_prop = (
-                    state["ema"],
-                    state["ema_prop"],
-                    state["ema_squared"],
-                    state["ema_squared_prop"],
-                )
                 beta1, beta2 = group["betas"]
                 amplification_factor = group["amp_fac"]
                 lr = group["lr"]
@@ -107,23 +101,23 @@ class CompassExperimental4Bit(Optimizer):
                 step_size = lr / bias_correction
 
                 # Decay the first and second moment running average coefficient
-                ema = dequantize_nf4(ema, ema_prop) + (1 - beta1) * grad
+                ema = dequantize_nf4(*state["ema"]) + (1 - beta1) * grad
                 # ema.mul_(beta1).add_(grad, alpha=1 - beta1)
                 # grad = grad + ema * amplification_factor
                 grad.add_(ema, alpha=amplification_factor)
 
                 ema_squared = (
-                    dequantize_nf4(ema_squared, ema_squared_prop)
+                    dequantize_nf4(*state["ema_squared"])
                     + (1 - beta2) * grad**2
                 )
-                ema, ema_prop = quantize_nf4(ema)
+                state["ema"] = quantize_nf4(ema)
 
                 # ema_squared.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
 
                 # lr scaler + eps to prevent zero division
                 # denom = exp_avg_sq.sqrt() + group['eps']
                 denom = (ema_squared.sqrt() / bias_correction_sqrt).add_(group["eps"])
-                ema_squared, ema_squared_prop = quantize_nf4(ema_squared)
+                state["ema_squared"] = quantize_nf4(ema_squared)
                 if weight_decay != 0:
                     # Perform stepweight decay
                     p.data.mul_(1 - step_size * weight_decay)
