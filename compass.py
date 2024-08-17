@@ -107,3 +107,15 @@ class Compass(Optimizer):
                 p.data.addcdiv_(grad, denom, value=-step_size)
 
         return loss
+
+
+def hammer(train_steps, loss, amp_str=1):
+    '''
+    amplify the loss landscape steepness to make optimization problem trivial
+    '''
+
+    with torch.no_grad():
+        loss_scaler = amp_str / loss
+        loss_scaler = min(train_steps, loss_scaler)
+
+    return loss * loss_scaler
