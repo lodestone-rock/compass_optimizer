@@ -142,9 +142,6 @@ class Compasstic(Optimizer):
         return loss
 
 
-import torch
-from torch.optim import Optimizer
-
 # @torch.compile
 def copy_stochastic_(target: torch.Tensor, source: torch.Tensor):
     # thanks to Nerogar for fast stochastic pytorch implementation 
