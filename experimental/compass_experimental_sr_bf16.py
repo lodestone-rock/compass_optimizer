@@ -539,12 +539,14 @@ class StochasticAccumulator:
     @staticmethod
     def reassign_grad_buffer(model):
         for n, p in model.named_parameters():
-            p.grad = p.acc_grad
-            del p.acc_grad
+            if p.requires_grad:
+                p.grad = p.acc_grad
+                del p.acc_grad
 
     @staticmethod
     def assign_hooks(model):
         for n, p in model.named_parameters():
-            p.register_post_accumulate_grad_hook(
-                StochasticAccumulator.stochastic_grad_accum
-            )
+            if p.requires_grad:
+                p.register_post_accumulate_grad_hook(
+                    StochasticAccumulator.stochastic_grad_accum
+                )
