@@ -1,9 +1,10 @@
 import torch
 from torch.optim import Optimizer
 
+
 # @torch.compile
 def copy_stochastic_(target: torch.Tensor, source: torch.Tensor):
-    # thanks to Nerogar for fast stochastic pytorch implementation 
+    # thanks to Nerogar for fast stochastic pytorch implementation
     # https://github.com/pytorch/pytorch/issues/120376#issuecomment-1974828905
     with torch.no_grad():
         # create a random 16 bit integer
@@ -88,7 +89,9 @@ class Compasstic(Optimizer):
                     # Exponential moving average of gradient values
                     state["ema"] = torch.zeros_like(p.data, dtype=torch.bfloat16)
                     # Exponential moving average of squared gradient values
-                    state["ema_squared"] = torch.zeros_like(p.data, dtype=torch.bfloat16)
+                    state["ema_squared"] = torch.zeros_like(
+                        p.data, dtype=torch.bfloat16
+                    )
 
                 # unpack
                 grad = grad.to(torch.float32)
@@ -106,7 +109,9 @@ class Compasstic(Optimizer):
                 # center the gradient vector
                 if centralization != 0:
                     grad.sub_(
-                        grad.mean(dim=tuple(range(1, grad.dim())), keepdim=True).mul_(centralization)
+                        grad.mean(dim=tuple(range(1, grad.dim())), keepdim=True).mul_(
+                            centralization
+                        )
                     )
 
                 # bias correction step size
@@ -137,7 +142,7 @@ class Compasstic(Optimizer):
                 # pack
                 copy_stochastic_(state["ema"], ema)
                 copy_stochastic_(state["ema_squared"], ema_squared)
-                copy_stochastic_(p, p_fp32) 
+                copy_stochastic_(p, p_fp32)
 
         return loss
 
@@ -207,7 +212,9 @@ class LPFAdamW(Optimizer):
                     state["smoothing"] = torch.zeros_like(p.data, dtype=torch.bfloat16)
                     state["ema"] = torch.zeros_like(p.data, dtype=torch.bfloat16)
                     # Exponential moving average of squared gradient values
-                    state["ema_squared"] = torch.zeros_like(p.data, dtype=torch.bfloat16)
+                    state["ema_squared"] = torch.zeros_like(
+                        p.data, dtype=torch.bfloat16
+                    )
 
                 # unpack
                 grad = grad.to(torch.float32)
@@ -226,7 +233,9 @@ class LPFAdamW(Optimizer):
                 # center the gradient vector
                 if centralization != 0:
                     grad.sub_(
-                        grad.mean(dim=tuple(range(1, grad.dim())), keepdim=True).mul_(centralization)
+                        grad.mean(dim=tuple(range(1, grad.dim())), keepdim=True).mul_(
+                            centralization
+                        )
                     )
 
                 # bias correction step size
@@ -260,7 +269,7 @@ class LPFAdamW(Optimizer):
                 copy_stochastic_(state["ema"], ema)
                 copy_stochastic_(state["ema_squared"], ema_squared)
                 copy_stochastic_(state["smoothing"], smoothing)
-                copy_stochastic_(p, p_fp32) 
+                copy_stochastic_(p, p_fp32)
 
         return loss
 
@@ -327,7 +336,9 @@ class AdamW(Optimizer):
                     # Exponential moving average of gradient values
                     state["ema"] = torch.zeros_like(p.data, dtype=torch.bfloat16)
                     # Exponential moving average of squared gradient values
-                    state["ema_squared"] = torch.zeros_like(p.data, dtype=torch.bfloat16)
+                    state["ema_squared"] = torch.zeros_like(
+                        p.data, dtype=torch.bfloat16
+                    )
 
                 # unpack
                 grad = grad.to(torch.float32)
@@ -344,7 +355,9 @@ class AdamW(Optimizer):
                 # center the gradient vector
                 if centralization != 0:
                     grad.sub_(
-                        grad.mean(dim=tuple(range(1, grad.dim())), keepdim=True).mul_(centralization)
+                        grad.mean(dim=tuple(range(1, grad.dim())), keepdim=True).mul_(
+                            centralization
+                        )
                     )
 
                 # bias correction step size
@@ -374,7 +387,7 @@ class AdamW(Optimizer):
                 # pack
                 copy_stochastic_(state["ema"], ema)
                 copy_stochastic_(state["ema_squared"], ema_squared)
-                copy_stochastic_(p, p_fp32) 
+                copy_stochastic_(p, p_fp32)
 
         return loss
 
@@ -439,7 +452,9 @@ class RMSProp(Optimizer):
                 if len(state) == 0:
                     state["step"] = 0
                     # Exponential moving average of squared gradient values
-                    state["ema_squared"] = torch.zeros_like(p.data, dtype=torch.bfloat16)
+                    state["ema_squared"] = torch.zeros_like(
+                        p.data, dtype=torch.bfloat16
+                    )
 
                 # unpack
                 grad = grad.to(torch.float32)
@@ -455,7 +470,9 @@ class RMSProp(Optimizer):
                 # center the gradient vector
                 if centralization != 0:
                     grad.sub_(
-                        grad.mean(dim=tuple(range(1, grad.dim())), keepdim=True).mul_(centralization)
+                        grad.mean(dim=tuple(range(1, grad.dim())), keepdim=True).mul_(
+                            centralization
+                        )
                     )
 
                 # bias correction step size
@@ -478,6 +495,56 @@ class RMSProp(Optimizer):
 
                 # pack
                 copy_stochastic_(state["ema_squared"], ema_squared)
-                copy_stochastic_(p, p_fp32) 
+                copy_stochastic_(p, p_fp32)
 
         return loss
+
+
+class StochasticAccumulator:
+    """
+    # init your model
+    your_fancy_model = YourFancyModel(*your_model_args)
+
+    # apply stochastic grad accumulator hooks
+    StochasticAccumulator.assign_hooks(your_fancy_model)
+
+    # training
+    while True:
+        loss = your_fancy_model.loss(*your_model_input)
+        for _ in range(grad_accum_length):
+            loss.backward()
+
+        # apply grad buffer back
+        StochasticAccumulator.reassign_grad_buffer(your_fancy_model)
+
+        optimizer.step()
+        optimizer.zero_grad()
+    """
+
+    @staticmethod
+    def stochastic_grad_accum(p):
+        # hack by adding attributes to "grad"
+        if hasattr(p, "acc_grad"):
+            acc_grad_fp32 = p.acc_grad.clone().to(torch.float32)
+            # acc_grad_fp32 += fp_32_grad
+            # upcast the gradient and then add it to p.grad
+            acc_grad_fp32.add_(p.grad.to(torch.float32))
+            copy_stochastic_(p.acc_grad, acc_grad_fp32)
+            del acc_grad_fp32
+            del p.grad
+        else:
+            p.acc_grad = p.grad.clone().to(torch.bfloat16)
+            del p.grad
+
+    @staticmethod
+    def reassign_grad_buffer(model):
+        for n, p in model.named_parameters():
+            p.grad = p.acc_grad
+            del p.acc_grad
+
+    @staticmethod
+    def assign_hooks(model):
+        for n, p in model.named_parameters():
+            p.register_post_accumulate_grad_hook(
+                StochasticAccumulator.stochastic_grad_accum
+            )
