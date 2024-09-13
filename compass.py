@@ -12,7 +12,7 @@ class Compass(Optimizer):
             Learning rate parameter (default 0.0025)
         betas (Tuple[float, float], optional):
             coefficients used for computing running averages of
-            gradient and its square (default: (0.9, 0.999)).
+            gradient and its square (default: (0.99, 0.999)).
         amp_fac (float):
             amplification factor for the first moment filter (default: 2).
         eps (float):
@@ -28,7 +28,7 @@ class Compass(Optimizer):
         self,
         params,
         lr=1e-3,
-        betas=(0.9, 0.999),
+        betas=(0.99, 0.999),
         amp_fac=2,
         eps=1e-8,
         weight_decay=0,
